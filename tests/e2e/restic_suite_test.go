@@ -14,7 +14,7 @@ var resticName string
 var _ = Describe("The Velero Restic spec", func() {
 	var _ = BeforeEach(func() {
 		flag.Parse()
-		s3Buffer, err := getJsonData(s3BucketFilePath)
+		s3Buffer, err := getJsonData(BucketFilePath)
 		Expect(err).NotTo(HaveOccurred())
 		s3Data, err := decodeJson(s3Buffer) // Might need to change this later on to create s3 for each tests
 		Expect(err).NotTo(HaveOccurred())
@@ -23,7 +23,7 @@ var _ = Describe("The Velero Restic spec", func() {
 		testSuiteInstanceName = "rs-" + instanceName
 		resticName = "restic"
 
-		credData, err := getCredsData(cloud)
+		credData, err := getCredsData(credentials)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = createCredentialsSecret(credData, namespace, credSecretRef)
@@ -41,7 +41,7 @@ var _ = Describe("The Velero Restic spec", func() {
 
 	Context("When the value of 'enable_restic' is changed to false", func() {
 		It("Should delete the Restic daemonset", func() {
-			err := installDefaultVelero(namespace, s3Bucket, credSecretRef, testSuiteInstanceName)
+			err := installDefaultVelero(namespace, s3Bucket, credSecretRef, testSuiteInstanceName, cloud)
 			Expect(err).ToNot(HaveOccurred())
 
 			// wait for daemonSet to initialize
@@ -59,7 +59,7 @@ var _ = Describe("The Velero Restic spec", func() {
 		It("Should update the Restic daemonSet to include a nodeSelector", func() {
 
 			// also installs Velero CR
-			err := enableResticNodeSelector(namespace, s3Bucket, credSecretRef, testSuiteInstanceName)
+			err := enableResticNodeSelector(namespace, s3Bucket, credSecretRef, testSuiteInstanceName, cloud)
 			Expect(err).ToNot(HaveOccurred())
 
 			// wait for daemonSet to initialize

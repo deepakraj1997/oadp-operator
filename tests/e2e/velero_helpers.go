@@ -14,8 +14,38 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-func getDefaultVeleroConfig(namespace string, s3Bucket string, credSecretRef string, instanceName string) *unstructured.Unstructured {
+func getDefaultVeleroConfig(namespace string, bucket string, credSecretRef string, instanceName string, cloud string) *unstructured.Unstructured {
 	// Velero Instance creation spec with backupstorage location default to AWS. Would need to parameterize this later on to support multiple plugins.
+	var backup_storage_locations = [](map[string]interface{}){
+		map[string]interface{}{
+			"credentials_secret_ref": map[string]interface{}{
+				"name":      credSecretRef,
+				"namespace": namespace,
+			},
+			"object_storage": map[string]interface{}{
+				"bucket": bucket,
+				"prefix": "velero",
+			},
+			"name":     "default",
+			"provider": cloud,
+		},
+	}
+	var volume_snapshot_locations = [](map[string]interface{}){
+		map[string]interface{}{
+			"name":     "default",
+			"provider": "aws",
+		},
+	}
+	if cloud == "aws" {
+		backup_storage_locations[0]["config"] = map[string]interface{}{
+			"profile": "default",
+			"region":  "us-east-1",
+		}
+		volume_snapshot_locations[0]["config"] = map[string]interface{}{
+			"profile": "default",
+			"region":  "us-west-1",
+		}
+	}
 	var veleroSpec = unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "konveyor.openshift.io/v1alpha1",
@@ -31,36 +61,10 @@ func getDefaultVeleroConfig(namespace string, s3Bucket string, credSecretRef str
 					"csi",
 					"openshift",
 				},
-				"backup_storage_locations": [](map[string]interface{}){
-					map[string]interface{}{
-						"config": map[string]interface{}{
-							"profile": "default",
-							"region":  "us-east-1",
-						},
-						"credentials_secret_ref": map[string]interface{}{
-							"name":      credSecretRef,
-							"namespace": namespace,
-						},
-						"object_storage": map[string]interface{}{
-							"bucket": s3Bucket,
-							"prefix": "velero",
-						},
-						"name":     "default",
-						"provider": "aws",
-					},
-				},
-				"velero_feature_flags": "EnableCSI",
-				"enable_restic":        true,
-				"volume_snapshot_locations": [](map[string]interface{}){
-					map[string]interface{}{
-						"config": map[string]interface{}{
-							"profile": "default",
-							"region":  "us-west-2",
-						},
-						"name":     "default",
-						"provider": "aws",
-					},
-				},
+				"backup_storage_locations":  backup_storage_locations,
+				"velero_feature_flags":      "EnableCSI",
+				"enable_restic":             true,
+				"volume_snapshot_locations": volume_snapshot_locations,
 			},
 		},
 	}

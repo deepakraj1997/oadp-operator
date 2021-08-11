@@ -15,8 +15,38 @@ import (
 // a bug in using this to set a map[string]string with dynamic client
 // panic: cannot deep copy []map[string]string
 
-func getResticVeleroConfig(namespace string, s3Bucket string, credSecretRef string, instanceName string) *unstructured.Unstructured {
+func getResticVeleroConfig(namespace string, bucket string, credSecretRef string, instanceName string, cloud string) *unstructured.Unstructured {
 	// Default Velero Instance config with backup_storage_locations defaulted to AWS.
+	var backup_storage_locations = [](map[string]interface{}){
+		map[string]interface{}{
+			"credentials_secret_ref": map[string]interface{}{
+				"name":      credSecretRef,
+				"namespace": namespace,
+			},
+			"object_storage": map[string]interface{}{
+				"bucket": bucket,
+				"prefix": "velero",
+			},
+			"name":     "default",
+			"provider": cloud,
+		},
+	}
+	var volume_snapshot_locations = [](map[string]interface{}){
+		map[string]interface{}{
+			"name":     "default",
+			"provider": "aws",
+		},
+	}
+	if cloud == "aws" {
+		backup_storage_locations[0]["config"] = map[string]interface{}{
+			"profile": "default",
+			"region":  "us-east-1",
+		}
+		volume_snapshot_locations[0]["config"] = map[string]interface{}{
+			"profile": "default",
+			"region":  "us-west-1",
+		}
+	}
 	var resticVeleroSpec = unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "konveyor.openshift.io/v1alpha1",
@@ -35,36 +65,10 @@ func getResticVeleroConfig(namespace string, s3Bucket string, credSecretRef stri
 					"csi",
 					"openshift",
 				},
-				"backup_storage_locations": [](map[string]interface{}){
-					map[string]interface{}{
-						"config": map[string]interface{}{
-							"profile": "default",
-							"region":  "us-east-1",
-						},
-						"credentials_secret_ref": map[string]interface{}{
-							"name":      credSecretRef,
-							"namespace": "oadp-operator",
-						},
-						"object_storage": map[string]interface{}{
-							"bucket": s3Bucket,
-							"prefix": "velero",
-						},
-						"name":     "default",
-						"provider": "aws",
-					},
-				},
-				"velero_feature_flags": "EnableCSI",
-				"enable_restic":        true,
-				"volume_snapshot_locations": [](map[string]interface{}){
-					map[string]interface{}{
-						"config": map[string]interface{}{
-							"profile": "default",
-							"region":  "us-west-2",
-						},
-						"name":     "default",
-						"provider": "aws",
-					},
-				},
+				"backup_storage_locations":  backup_storage_locations,
+				"velero_feature_flags":      "EnableCSI",
+				"enable_restic":             true,
+				"volume_snapshot_locations": volume_snapshot_locations,
 			},
 		},
 	}
@@ -196,13 +200,13 @@ func isResticDaemonsetDeleted(namespace string, instanceName string, resticName 
 	}
 }
 
-func enableResticNodeSelector(namespace string, s3Bucket string, credSecretRef string, instanceName string) error {
+func enableResticNodeSelector(namespace string, s3Bucket string, credSecretRef string, instanceName string, cloud string) error {
 	veleroClient, err := setUpDynamicVeleroClient(namespace)
 	if err != nil {
 		return nil
 	}
 	// get Velero as unstructured type
-	veleroResource := getResticVeleroConfig(namespace, s3Bucket, credSecretRef, instanceName)
+	veleroResource := getResticVeleroConfig(namespace, s3Bucket, credSecretRef, instanceName, cloud)
 	_, err = veleroClient.Create(context.Background(), veleroResource, metav1.CreateOptions{})
 	if err != nil {
 		return err

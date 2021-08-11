@@ -14,7 +14,7 @@ var deploymentName string
 var _ = Describe("The Velero Restic spec", func() {
 	var _ = BeforeEach(func() {
 		flag.Parse()
-		s3Buffer, err := getJsonData(s3BucketFilePath)
+		s3Buffer, err := getJsonData(BucketFilePath)
 		Expect(err).NotTo(HaveOccurred())
 		s3Data, err := decodeJson(s3Buffer) // Might need to change this later on to create s3 for each tests
 		Expect(err).NotTo(HaveOccurred())
@@ -24,13 +24,13 @@ var _ = Describe("The Velero Restic spec", func() {
 
 		deploymentName = "velero"
 
-		credData, err := getCredsData(cloud)
+		credData, err := getCredsData(credentials)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = createCredentialsSecret(credData, namespace, credSecretRef)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = installDefaultVelero(namespace, s3Bucket, credSecretRef, testInstanceName)
+		err = installDefaultVelero(namespace, s3Bucket, credSecretRef, testInstanceName, cloud)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

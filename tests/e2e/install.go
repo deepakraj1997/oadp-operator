@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-func installDefaultVelero(namespace string, s3Bucket string, credSecretRef string, instanceName string) error {
+func installDefaultVelero(namespace string, s3Bucket string, credSecretRef string, instanceName string, cloud string) error {
 	kubeConfig := getKubeConfig()
 
 	// create dynamic client for CR
@@ -15,7 +15,7 @@ func installDefaultVelero(namespace string, s3Bucket string, credSecretRef strin
 		return err
 	}
 	// get Velero unstruct type to create Velero CR
-	unstrVel := getDefaultVeleroConfig(namespace, s3Bucket, credSecretRef, instanceName)
+	unstrVel := getDefaultVeleroConfig(namespace, s3Bucket, credSecretRef, instanceName, cloud)
 	_, err = createDefaultVeleroCR(unstrVel, client, namespace)
 	fmt.Println("Default Velero CR created")
 	return err

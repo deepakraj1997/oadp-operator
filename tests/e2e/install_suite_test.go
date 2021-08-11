@@ -27,7 +27,7 @@ var _ = AfterSuite(func() {
 var _ = Describe("The default Velero custom resource", func() {
 	var _ = BeforeEach(func() {
 		flag.Parse()
-		s3Buffer, err := getJsonData(s3BucketFilePath)
+		s3Buffer, err := getJsonData(BucketFilePath)
 		Expect(err).NotTo(HaveOccurred())
 		s3Data, err := decodeJson(s3Buffer) // Might need to change this later on to create s3 for each tests
 		Expect(err).NotTo(HaveOccurred())
@@ -35,14 +35,14 @@ var _ = Describe("The default Velero custom resource", func() {
 
 		testSuiteInstanceName := "ts-" + instanceName
 
-		credData, err := getCredsData(cloud)
+		credData, err := getCredsData(credentials)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = createCredentialsSecret(credData, namespace, credSecretRef)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Check that OADP operator is installed in test namespace
-		err = installDefaultVelero(namespace, s3Bucket, credSecretRef, testSuiteInstanceName)
+		err = installDefaultVelero(namespace, s3Bucket, credSecretRef, testSuiteInstanceName, cloud)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
