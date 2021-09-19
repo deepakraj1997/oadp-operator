@@ -3,13 +3,15 @@ package e2e
 import (
 	"errors"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"log"
+	oadpv1alpha1 "github.com/openshift/oadp-operator/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 var _ = Describe("AWS backup restore tests", func() {
@@ -17,16 +19,16 @@ var _ = Describe("AWS backup restore tests", func() {
 		testSuiteInstanceName := "ts-" + instanceName
 		vel.Name = testSuiteInstanceName
 
-		credData, err := getCredsData(cloud)
+		credData, err := getCredsData(credentials)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = createCredentialsSecret(credData, namespace, credSecretRef)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = vel.Build()
+		err = vel.buildVeleroCr(true, []oadpv1alpha1.DefaultPlugin{})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = vel.CreateOrUpdate(&vel.CustomResource.Spec)
+		err = vel.CreateOrUpdate(false)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

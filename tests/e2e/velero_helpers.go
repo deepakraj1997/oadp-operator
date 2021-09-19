@@ -21,14 +21,24 @@ type veleroCustomResource struct {
 	Namespace      string
 	SecretName     string
 	Bucket         string
-	Region         string
 	Provider       string
 	CustomResource *oadpv1alpha1.Velero
+	config         map[string]string
 	Client         client.Client
 }
 
-func (v *veleroCustomResource) Build() error {
+func (v *veleroCustomResource) buildVeleroCr(enableRestic bool, extraDefaultPlugins []oadpv1alpha1.DefaultPlugin) error {
 	// Velero Instance creation spec with backupstorage location default to AWS. Would need to parameterize this later on to support multiple plugins.
+	var defaultVeleroPlugins = extraDefaultPlugins
+	defaultVeleroPlugins = append(defaultVeleroPlugins, oadpv1alpha1.DefaultPluginOpenShift)
+	switch v.Provider {
+	case "aws":
+		defaultVeleroPlugins = append(defaultVeleroPlugins, oadpv1alpha1.DefaultPluginAWS)
+		// case "gcp":
+		// 	config["serviceAccount"] = v.Region
+		// 	defaultVeleroPlugins = append(defaultVeleroPlugins, oadpv1alpha1.DefaultPluginGCP)
+	}
+
 	veleroSpec := oadpv1alpha1.Velero{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      v.Name,
@@ -36,14 +46,12 @@ func (v *veleroCustomResource) Build() error {
 		},
 		Spec: oadpv1alpha1.VeleroSpec{
 			OlmManaged:   pointer.Bool(false),
-			EnableRestic: pointer.Bool(true),
+			EnableRestic: &enableRestic,
 			BackupStorageLocations: []velero.BackupStorageLocationSpec{
 				{
 					Provider: v.Provider,
-					Config: map[string]string{
-						"region": v.Region,
-					},
-					Default: true,
+					Config:   v.config,
+					Default:  true,
 					StorageType: velero.StorageType{
 						ObjectStorage: &velero.ObjectStorageLocation{
 							Bucket: v.Bucket,
@@ -52,10 +60,7 @@ func (v *veleroCustomResource) Build() error {
 					},
 				},
 			},
-			DefaultVeleroPlugins: []oadpv1alpha1.DefaultPlugin{
-				oadpv1alpha1.DefaultPluginOpenShift,
-				oadpv1alpha1.DefaultPluginAWS,
-			},
+			DefaultVeleroPlugins: defaultVeleroPlugins,
 		},
 	}
 	v.CustomResource = &veleroSpec
@@ -92,17 +97,17 @@ func (v *veleroCustomResource) Get() (*oadpv1alpha1.Velero, error) {
 	return &vel, nil
 }
 
-func (v *veleroCustomResource) CreateOrUpdate(spec *oadpv1alpha1.VeleroSpec) error {
+func (v *veleroCustomResource) CreateOrUpdate(defaultConf bool) error {
 	cr, err := v.Get()
 	if apierrors.IsNotFound(err) {
-		v.Build()
-		v.CustomResource.Spec = *spec
+		if defaultConf {
+			v.buildVeleroCr(true, []oadpv1alpha1.DefaultPlugin{})
+		}
 		return v.Create()
 	}
 	if err != nil {
 		return err
 	}
-	cr.Spec = *spec
 	err = v.Client.Update(context.Background(), cr)
 	if err != nil {
 		return err

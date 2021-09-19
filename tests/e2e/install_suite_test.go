@@ -2,12 +2,11 @@ package e2e
 
 import (
 	"flag"
-	oadpv1alpha1 "github.com/openshift/oadp-operator/api/v1alpha1"
-	"github.com/openshift/oadp-operator/pkg/common"
-	velero "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
-	"k8s.io/utils/pointer"
 	"log"
 	"time"
+
+	oadpv1alpha1 "github.com/openshift/oadp-operator/api/v1alpha1"
+	"github.com/openshift/oadp-operator/pkg/common"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -18,17 +17,24 @@ var vel *veleroCustomResource
 
 var _ = BeforeSuite(func() {
 	flag.Parse()
-	s3Buffer, err := getJsonData(s3BucketFilePath)
+	s3Buffer, err := getJsonData(bucketFilePath)
 	Expect(err).NotTo(HaveOccurred())
 	s3Data, err := decodeJson(s3Buffer) // Might need to change this later on to create s3 for each tests
 	Expect(err).NotTo(HaveOccurred())
-	s3Bucket = s3Data["velero-bucket-name"].(string)
+	bucket = s3Data["velero-bucket-name"].(string)
 
 	vel = &veleroCustomResource{
 		Namespace: namespace,
-		Region:    region,
-		Bucket:    s3Bucket,
+		Bucket:    bucket,
 		Provider:  provider,
+	}
+	switch vel.Provider {
+	case "aws":
+		vel.config = map[string]string{
+			"region": region,
+		}
+		// case "gcp":
+		// 	config["serviceAccount"] = v.Region
 	}
 	testSuiteInstanceName := "ts-" + instanceName
 	vel.Name = testSuiteInstanceName
@@ -49,7 +55,7 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 	var _ = BeforeEach(func() {
-		credData, err := getCredsData(cloud)
+		credData, err := getCredsData(credentials)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = createCredentialsSecret(credData, namespace, credSecretRef)
@@ -58,15 +64,17 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 
 	type InstallCase struct {
 		Name                       string
-		VeleroSpec                 *oadpv1alpha1.VeleroSpec
 		ExpectRestic               bool
+		ExtraDefaultPlugins        []oadpv1alpha1.DefaultPlugin
 		ExpectedPlugins            []string
 		ExpectedResticNodeSelector map[string]string
 	}
 
 	DescribeTable("Updating custom resource with new configuration",
 		func(installCase InstallCase, expectedErr error) {
-			err := vel.CreateOrUpdate(installCase.VeleroSpec)
+			// vel.CustomResource.Spec.EnableRestic =
+			vel.buildVeleroCr(installCase.ExpectRestic, installCase.ExtraDefaultPlugins)
+			err := vel.CreateOrUpdate(false)
 			Expect(err).ToNot(HaveOccurred())
 			log.Printf("Waiting for velero pod to be running")
 			Eventually(isVeleroPodRunning(namespace), time.Minute*3, time.Second*5).Should(BeTrue())
@@ -87,51 +95,25 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 			}
 		},
 		Entry("Default velero CR", InstallCase{
-			Name: "default-cr",
-			VeleroSpec: &oadpv1alpha1.VeleroSpec{
-				OlmManaged:   pointer.Bool(false),
-				EnableRestic: pointer.Bool(true),
-				BackupStorageLocations: []velero.BackupStorageLocationSpec{
-					{
-						Provider: provider,
-						Config: map[string]string{
-							"region": region,
-						},
-						Default: true,
-						StorageType: velero.StorageType{
-							ObjectStorage: &velero.ObjectStorageLocation{
-								Bucket: s3Bucket,
-								Prefix: "velero",
-							},
-						},
-					},
-				},
-				DefaultVeleroPlugins: []oadpv1alpha1.DefaultPlugin{
-					oadpv1alpha1.DefaultPluginOpenShift,
-					oadpv1alpha1.DefaultPluginAWS,
-				},
-			},
+			Name:         "default-cr",
 			ExpectRestic: true,
 			ExpectedPlugins: []string{
 				common.VeleroPluginForAWS,
 				common.VeleroPluginForOpenshift,
 			},
 		}, nil),
-		Entry("Default velero CR with restic disabled", InstallCase{
+		/*Entry("Default velero CR with restic disabled", InstallCase{
 			Name: "default-cr-no-restic",
 			VeleroSpec: &oadpv1alpha1.VeleroSpec{
 				OlmManaged:   pointer.Bool(false),
 				EnableRestic: pointer.Bool(false),
-				BackupStorageLocations: []velero.BackupStorageLocationSpec{
+				extraDefaultPlugins: []velero.BackupStorageLocationSpec{
 					{
 						Provider: provider,
-						Config: map[string]string{
-							"region": region,
-						},
-						Default: true,
+						Default:  true,
 						StorageType: velero.StorageType{
 							ObjectStorage: &velero.ObjectStorageLocation{
-								Bucket: s3Bucket,
+								Bucket: bucket,
 								Prefix: "velero",
 							},
 						},
@@ -139,12 +121,10 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				},
 				DefaultVeleroPlugins: []oadpv1alpha1.DefaultPlugin{
 					oadpv1alpha1.DefaultPluginOpenShift,
-					oadpv1alpha1.DefaultPluginAWS,
 				},
 			},
 			ExpectRestic: false,
 			ExpectedPlugins: []string{
-				common.VeleroPluginForAWS,
 				common.VeleroPluginForOpenshift,
 			},
 		}, nil),
@@ -156,13 +136,10 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				BackupStorageLocations: []velero.BackupStorageLocationSpec{
 					{
 						Provider: provider,
-						Config: map[string]string{
-							"region": region,
-						},
-						Default: true,
+						Default:  true,
 						StorageType: velero.StorageType{
 							ObjectStorage: &velero.ObjectStorageLocation{
-								Bucket: s3Bucket,
+								Bucket: bucket,
 								Prefix: "velero",
 							},
 						},
@@ -170,13 +147,11 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				},
 				DefaultVeleroPlugins: []oadpv1alpha1.DefaultPlugin{
 					oadpv1alpha1.DefaultPluginOpenShift,
-					oadpv1alpha1.DefaultPluginAWS,
 					oadpv1alpha1.DefaultPluginCSI,
 				},
 			},
 			ExpectRestic: true,
 			ExpectedPlugins: []string{
-				common.VeleroPluginForAWS,
 				common.VeleroPluginForOpenshift,
 				common.VeleroPluginForCSI,
 			},
@@ -192,13 +167,10 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				BackupStorageLocations: []velero.BackupStorageLocationSpec{
 					{
 						Provider: provider,
-						Config: map[string]string{
-							"region": region,
-						},
-						Default: true,
+						Default:  true,
 						StorageType: velero.StorageType{
 							ObjectStorage: &velero.ObjectStorageLocation{
-								Bucket: s3Bucket,
+								Bucket: bucket,
 								Prefix: "velero",
 							},
 						},
@@ -206,13 +178,11 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				},
 				DefaultVeleroPlugins: []oadpv1alpha1.DefaultPlugin{
 					oadpv1alpha1.DefaultPluginOpenShift,
-					oadpv1alpha1.DefaultPluginAWS,
 					oadpv1alpha1.DefaultPluginCSI,
 				},
 			},
 			ExpectRestic: true,
 			ExpectedPlugins: []string{
-				common.VeleroPluginForAWS,
 				common.VeleroPluginForOpenshift,
 				common.VeleroPluginForCSI,
 			},
@@ -220,5 +190,6 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				"foo": "bar",
 			},
 		}, nil),
+		*/
 	)
 })
