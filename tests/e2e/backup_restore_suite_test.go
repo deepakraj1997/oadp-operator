@@ -1,14 +1,8 @@
 package e2e
 
 import (
-	"errors"
-	"fmt"
-	"log"
-	"time"
-
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	// . "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -18,7 +12,7 @@ var _ = Describe("AWS backup restore tests", func() {
 		testSuiteInstanceName := "ts-" + instanceName
 		vel.Name = testSuiteInstanceName
 
-		credData, err := getCredsData(cloud)
+		credData, err := getCredsData(credentials)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = createCredentialsSecret(credData, namespace, credSecretRef)
@@ -49,7 +43,7 @@ var _ = Describe("AWS backup restore tests", func() {
 		MinK8SVersion        *k8sVersion
 	}
 
-	DescribeTable("backup and restore applications",
+	/*DescribeTable("backup and restore applications",
 		func(brCase BackupRestoreCase, expectedErr error) {
 			if notVersionTarget, reason := NotServerVersionTarget(brCase.MinK8SVersion, brCase.MaxK8SVersion); notVersionTarget {
 				Skip(reason)
@@ -163,4 +157,5 @@ var _ = Describe("AWS backup restore tests", func() {
 			MinK8SVersion: &k8sVersionOcp48,
 		}, nil),
 	)
+	*/
 })
