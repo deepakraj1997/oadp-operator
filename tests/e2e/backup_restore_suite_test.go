@@ -1,15 +1,10 @@
 package e2e
 
 import (
-	"errors"
-	"fmt"
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	// . "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"log"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 var _ = Describe("AWS backup restore tests", func() {
@@ -17,7 +12,7 @@ var _ = Describe("AWS backup restore tests", func() {
 		testSuiteInstanceName := "ts-" + instanceName
 		vel.Name = testSuiteInstanceName
 
-		credData, err := getCredsData(cloud)
+		credData, err := getCredsData(credentials)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = createCredentialsSecret(credData, namespace, credSecretRef)
@@ -46,7 +41,7 @@ var _ = Describe("AWS backup restore tests", func() {
 		PostRestoreVerify    VerificationFunction
 	}
 
-	DescribeTable("backup and restore applications",
+	/*DescribeTable("backup and restore applications",
 		func(brCase BackupRestoreCase, expectedErr error) {
 			backupUid, _ := uuid.NewUUID()
 			restoreUid, _ := uuid.NewUUID()
@@ -143,4 +138,5 @@ var _ = Describe("AWS backup restore tests", func() {
 			}),
 		}, nil),
 	)
+	*/
 })

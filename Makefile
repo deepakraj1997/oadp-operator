@@ -1,9 +1,10 @@
 OADP_TEST_NAMESPACE ?= oadp-operator-system
 REGION ?= us-east-1
-PROVIDER ?= aws
+GCP_SERVICE_ACCOUNT ?= my-service-account
+CLUSTER_PROFILE ?= aws
 CREDS_SECRET_REF ?= cloud-credentials
-OADP_AWS_CRED_FILE ?= /var/run/oadp-credentials/aws-credentials
-OADP_S3_BUCKET ?= /var/run/oadp-credentials/velero-bucket-name
+OADP_CRED_FILE ?= /var/run/oadp-credentials/aws-credentials
+OADP_BUCKET ?= /var/run/oadp-credentials/velero-bucket-name
 VELERO_INSTANCE_NAME ?= velero-sample
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -241,9 +242,11 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 test-e2e:
-	ginkgo -mod=mod tests/e2e/ -- -cloud=$(OADP_AWS_CRED_FILE) \
-	-s3_bucket=$(OADP_S3_BUCKET) -velero_namespace=$(OADP_TEST_NAMESPACE) \
+	ginkgo -mod=mod tests/e2e/ -- \
+	-credentials=$(OADP_CRED_FILE) \
+	-velero_bucket=$(OADP_BUCKET) \
+	-velero_namespace=$(OADP_TEST_NAMESPACE) \
 	-creds_secret_ref=$(CREDS_SECRET_REF) \
 	-velero_instance_name=$(VELERO_INSTANCE_NAME) \
 	-region=$(REGION) \
-	-provider=$(PROVIDER)
+	-provider=$(CLUSTER_PROFILE)
