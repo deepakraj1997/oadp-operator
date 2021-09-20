@@ -123,7 +123,7 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				common.VeleroPluginForOpenshift,
 			},
 		}, nil),
-		Entry("Default velero CR with restic disabled", InstallCase{
+		/*Entry("Default velero CR with restic disabled", InstallCase{
 			Name: "default-cr-no-restic",
 			VeleroSpec: &oadpv1alpha1.VeleroSpec{
 				OlmManaged:   pointer.Bool(false),
@@ -226,5 +226,6 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				"foo": "bar",
 			},
 		}, nil),
+		*/
 	)
 })
