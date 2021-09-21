@@ -67,13 +67,12 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 
 	DescribeTable("Updating custom resource with new configuration",
 		func(installCase InstallCase, expectedErr error) {
-			tempVeleroSpec := *installCase.VeleroSpec
 			switch vel.Provider {
 			case "aws":
-				tempVeleroSpec.BackupStorageLocations[0].Config = map[string]string{
+				installCase.VeleroSpec.BackupStorageLocations[0].Config = map[string]string{
 					"region": region,
 				}
-				tempVeleroSpec.DefaultVeleroPlugins = append(tempVeleroSpec.DefaultVeleroPlugins, oadpv1alpha1.DefaultPluginAWS) // case "gcp":
+				installCase.VeleroSpec.DefaultVeleroPlugins = append(installCase.VeleroSpec.DefaultVeleroPlugins, oadpv1alpha1.DefaultPluginAWS) // case "gcp":
 				installCase.ExpectedPlugins = append(installCase.ExpectedPlugins, common.VeleroPluginForAWS)
 				// 	config["serviceAccount"] = v.Region
 			}
@@ -123,7 +122,7 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				common.VeleroPluginForOpenshift,
 			},
 		}, nil),
-		/*Entry("Default velero CR with restic disabled", InstallCase{
+		Entry("Default velero CR with restic disabled", InstallCase{
 			Name: "default-cr-no-restic",
 			VeleroSpec: &oadpv1alpha1.VeleroSpec{
 				OlmManaged:   pointer.Bool(false),
@@ -131,10 +130,7 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				BackupStorageLocations: []velero.BackupStorageLocationSpec{
 					{
 						Provider: provider,
-						Config: map[string]string{
-							"region": region,
-						},
-						Default: true,
+						Default:  true,
 						StorageType: velero.StorageType{
 							ObjectStorage: &velero.ObjectStorageLocation{
 								Bucket: bucket,
@@ -145,12 +141,10 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				},
 				DefaultVeleroPlugins: []oadpv1alpha1.DefaultPlugin{
 					oadpv1alpha1.DefaultPluginOpenShift,
-					oadpv1alpha1.DefaultPluginAWS,
 				},
 			},
 			ExpectRestic: false,
 			ExpectedPlugins: []string{
-				common.VeleroPluginForAWS,
 				common.VeleroPluginForOpenshift,
 			},
 		}, nil),
@@ -162,10 +156,7 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				BackupStorageLocations: []velero.BackupStorageLocationSpec{
 					{
 						Provider: provider,
-						Config: map[string]string{
-							"region": region,
-						},
-						Default: true,
+						Default:  true,
 						StorageType: velero.StorageType{
 							ObjectStorage: &velero.ObjectStorageLocation{
 								Bucket: bucket,
@@ -176,13 +167,11 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				},
 				DefaultVeleroPlugins: []oadpv1alpha1.DefaultPlugin{
 					oadpv1alpha1.DefaultPluginOpenShift,
-					oadpv1alpha1.DefaultPluginAWS,
 					oadpv1alpha1.DefaultPluginCSI,
 				},
 			},
 			ExpectRestic: true,
 			ExpectedPlugins: []string{
-				common.VeleroPluginForAWS,
 				common.VeleroPluginForOpenshift,
 				common.VeleroPluginForCSI,
 			},
@@ -198,10 +187,7 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				BackupStorageLocations: []velero.BackupStorageLocationSpec{
 					{
 						Provider: provider,
-						Config: map[string]string{
-							"region": region,
-						},
-						Default: true,
+						Default:  true,
 						StorageType: velero.StorageType{
 							ObjectStorage: &velero.ObjectStorageLocation{
 								Bucket: bucket,
@@ -212,13 +198,11 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				},
 				DefaultVeleroPlugins: []oadpv1alpha1.DefaultPlugin{
 					oadpv1alpha1.DefaultPluginOpenShift,
-					oadpv1alpha1.DefaultPluginAWS,
 					oadpv1alpha1.DefaultPluginCSI,
 				},
 			},
 			ExpectRestic: true,
 			ExpectedPlugins: []string{
-				common.VeleroPluginForAWS,
 				common.VeleroPluginForOpenshift,
 				common.VeleroPluginForCSI,
 			},
@@ -226,6 +210,5 @@ var _ = Describe("Configuration testing for Velero Custom Resource", func() {
 				"foo": "bar",
 			},
 		}, nil),
-		*/
 	)
 })

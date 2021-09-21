@@ -1,8 +1,14 @@
 package e2e
 
 import (
+	"errors"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
-	// . "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,7 +47,7 @@ var _ = Describe("AWS backup restore tests", func() {
 		PostRestoreVerify    VerificationFunction
 	}
 
-	/*DescribeTable("backup and restore applications",
+	DescribeTable("backup and restore applications",
 		func(brCase BackupRestoreCase, expectedErr error) {
 			backupUid, _ := uuid.NewUUID()
 			restoreUid, _ := uuid.NewUUID()
@@ -138,5 +144,4 @@ var _ = Describe("AWS backup restore tests", func() {
 			}),
 		}, nil),
 	)
-	*/
 })
