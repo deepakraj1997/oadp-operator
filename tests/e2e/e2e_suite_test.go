@@ -61,6 +61,7 @@ var _ = BeforeSuite(func() {
 		Namespace:     namespace,
 		Credentials:   credFile,
 		CredSecretRef: credSecretRef,
+		Provider:      provider,
 	}
 	dpaCR.CustomResource = dpa
 	testSuiteInstanceName := "ts-" + instanceName
