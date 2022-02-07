@@ -67,17 +67,7 @@ var _ = BeforeSuite(func() {
 	dpaCR.Name = testSuiteInstanceName
 	openshift_ci_bool, _ := strconv.ParseBool(openshift_ci)
 	dpaCR.OpenshiftCi = openshift_ci_bool
-	cloudCredData, err := getJsonData(dpaCR.Credentials) // azure credentials need to be in json - can be changed
 
-	Expect(err).NotTo(HaveOccurred())
-	dpaCR.DpaAzureConfig = dpaAzureConfig{
-		BslSubscriptionId:          fmt.Sprintf("%v", cloudCredData["subscriptionId"]),
-		BslResourceGroup:           fmt.Sprintf("%v", cloudCredData["resourceGroup"]),
-		BslStorageAccount:          fmt.Sprintf("%v", cloudCredData["storageAccount"]),
-		BslStorageAccountKeyEnvVar: "AZURE_STORAGE_ACCOUNT_ACCESS_KEY",
-		VslSubscriptionId:          fmt.Sprintf("%v", cloudCredData["subscriptionId"]),
-		VslResourceGroup:           fmt.Sprintf("%v", cloudCredData["resourceGroup"]),
-	}
 	if openshift_ci_bool == true {
 		switch dpaCR.Provider {
 		case "aws":
@@ -97,6 +87,18 @@ var _ = BeforeSuite(func() {
 			Expect(err).NotTo(HaveOccurred())
 			dpaCR.Credentials = ci_cred_file
 		case "azure":
+			cloudCredData, err := getJsonData(dpaCR.Credentials) // azure credentials need to be in json - can be changed
+
+			Expect(err).NotTo(HaveOccurred())
+			dpaCR.DpaAzureConfig = dpaAzureConfig{
+				BslSubscriptionId:          fmt.Sprintf("%v", cloudCredData["subscriptionId"]),
+				BslResourceGroup:           fmt.Sprintf("%v", cloudCredData["resourceGroup"]),
+				BslStorageAccount:          fmt.Sprintf("%v", cloudCredData["storageAccount"]),
+				BslStorageAccountKeyEnvVar: "AZURE_STORAGE_ACCOUNT_ACCESS_KEY",
+				VslSubscriptionId:          fmt.Sprintf("%v", cloudCredData["subscriptionId"]),
+				VslResourceGroup:           fmt.Sprintf("%v", cloudCredData["resourceGroup"]),
+			}
+
 			// bsl cloud
 			cloudCreds := getAzureCreds(cloudCredData)
 			err = createCredentialsSecret(cloudCreds, namespace, "bsl-cloud-credentials-azure")
