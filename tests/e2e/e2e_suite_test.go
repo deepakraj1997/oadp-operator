@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"log"
-	"strconv"
 	"testing"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 )
 
 // Common vars obtained from flags passed in ginkgo.
-var credFile, namespace, credSecretRef, instanceName, provider, openshift_ci, ci_cred_file, settings string
+var credFile, namespace, credSecretRef, instanceName, provider, ci_cred_file, settings string
 var timeoutMultiplier time.Duration
 
 func init() {
@@ -26,7 +25,6 @@ func init() {
 	flag.StringVar(&credSecretRef, "creds_secret_ref", "cloud-credentials", "Credential secret ref for backup storage location")
 	flag.StringVar(&provider, "provider", "aws", "Cloud provider")
 	flag.StringVar(&ci_cred_file, "ci_cred_file", credFile, "CI Cloud Cred File")
-	flag.StringVar(&openshift_ci, "openshift_ci", "false", "ENV for tests")
 
 	timeoutMultiplierInput := flag.Int64("timeout_multiplier", 1, "Customize timeout multiplier from default (1)")
 	timeoutMultiplier = 1
@@ -65,16 +63,13 @@ var _ = BeforeSuite(func() {
 	dpaCR.CustomResource = Dpa
 	testSuiteInstanceName := "ts-" + instanceName
 	dpaCR.Name = testSuiteInstanceName
-	openshift_ci_bool, _ := strconv.ParseBool(openshift_ci)
-	dpaCR.OpenshiftCi = openshift_ci_bool
 
-	if openshift_ci_bool {
-		cloudCredData, err := utils.ReadFile(dpaCR.Credentials)
-		Expect(err).NotTo(HaveOccurred())
-		err = CreateCredentialsSecret(cloudCredData, namespace, "bsl-cloud-credentials-"+provider)
-		Expect(err).NotTo(HaveOccurred())
-		dpaCR.Credentials = ci_cred_file
-	}
+	cloudCredData, err := utils.ReadFile(dpaCR.Credentials)
+	Expect(err).NotTo(HaveOccurred())
+	err = CreateCredentialsSecret(cloudCredData, namespace, "bsl-cloud-credentials-"+provider)
+	Expect(err).NotTo(HaveOccurred())
+	dpaCR.Credentials = ci_cred_file
+
 	credData, err := utils.ReadFile(dpaCR.Credentials)
 	Expect(err).NotTo(HaveOccurred())
 	err = CreateCredentialsSecret(credData, namespace, credSecretRef)
