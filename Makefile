@@ -29,7 +29,7 @@ AZURE_OADP_JSON_CRED_FILE ?= ${OADP_CRED_DIR}/azure-credentials
 
 # Misc
 OPENSHIFT_CI ?= true
-VELERO_INSTANCE_NAME ?= velero-sample
+VELERO_INSTANCE_NAME ?= velero-test
 E2E_TIMEOUT_MULTIPLIER ?= 1
 
 ifeq ($(CLUSTER_TYPE), gcp)
